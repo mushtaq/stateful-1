@@ -1,8 +1,8 @@
 package stateful
-import java.util.concurrent.{ExecutorService, Executors}
+import java.util.concurrent.Executors
 
+import scala.async.Async._
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutorService, Future}
-import async.Async._
 
 object BankAccountTest extends App {
 
@@ -24,8 +24,10 @@ object BankAccountTest extends App {
     val f2 = async {
       await(bankAccount.withdraw(10))
     }
-    await(f1)
-    f2
+    async {
+      await(f1)
+      await(f2)
+    }
   }
 
   async {

@@ -2,8 +2,8 @@ package stateful
 
 import java.util.concurrent.{ExecutorService, Executors}
 
-import scala.concurrent.{ExecutionContext, ExecutionContextExecutorService, Future}
-import async.Async._
+import scala.async.Async._
+import scala.concurrent.{ExecutionContext, Future}
 
 class BankAccount(externalService: ExternalService) {
 
@@ -28,7 +28,7 @@ class BankAccount(externalService: ExternalService) {
     }
   }
 
-  def balance: Future[Int] = async { _ =>
+  def balance: Future[Int] = async {
     _balance
   }
 }
