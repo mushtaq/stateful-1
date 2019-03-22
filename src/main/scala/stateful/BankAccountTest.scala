@@ -2,6 +2,7 @@ package stateful
 import java.util.concurrent.{ExecutorService, Executors}
 
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutorService, Future}
+import async.Async._
 
 object BankAccountTest extends App {
 
@@ -16,17 +17,20 @@ object BankAccountTest extends App {
     ExecutionContext.fromExecutorService(Executors.newFixedThreadPool(100))
   }
 
-  val finalFuture = Future
-    .traverse((1 to 10000).toList) { x =>
-      val f1 = Future.unit.flatMap { _ =>
-        bankAccount.deposit(10)
-      }
-      val f2 = Future.unit.flatMap { _ =>
-        bankAccount.withdraw(10)
-      }
-      f1.flatMap(_ => f2)
+  val finalFuture = Future.traverse((1 to 10000).toList) { x =>
+    val f1 = async {
+      await(bankAccount.deposit(10))
     }
-    .flatMap(_ => bankAccount.balance)
+    val f2 = async {
+      await(bankAccount.withdraw(10))
+    }
+    await(f1)
+    f2
+  }
 
-  finalFuture.onComplete(println)
+  async {
+    await(finalFuture)
+    val balance = await(bankAccount.balance)
+    println(balance)
+  }
 }

@@ -10,6 +10,7 @@ lazy val root = (project in file("."))
     libraryDependencies ++= Seq(
       Akka.`akka-stream-typed`,
       Libs.`ammonite`,
+      Libs.`scala-async`,
       Libs.`scalatest` % Test,
     )
   )
