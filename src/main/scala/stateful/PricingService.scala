@@ -1,9 +1,8 @@
 package stateful
-import scala.concurrent.Future
-import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
 
-class PricingService(externalService: ExternalService) {
+class PricingService(externalService: ExternalService)(implicit ec: ExecutionContext) {
   private val m = Map(1 -> 100, 2 -> 200)
 
   def onProductPrice(productId: Int, f: Int => Unit): Unit = {

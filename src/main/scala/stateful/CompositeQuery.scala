@@ -1,9 +1,8 @@
 package stateful
 
-import scala.concurrent.Future
-import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.{ExecutionContext, Future}
 
-class CompositeQuery(pricingService: PricingService) {
+class CompositeQuery(pricingService: PricingService)(implicit ec: ExecutionContext) {
 
   def getTotalPrice: Future[Int] = {
     pricingService.getProductPrice(1).flatMap { p1 =>

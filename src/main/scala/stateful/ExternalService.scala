@@ -1,19 +1,20 @@
 package stateful
 import java.util.concurrent.{Executors, ScheduledExecutorService, TimeUnit}
 
-import scala.concurrent.{Future, Promise}
+import scala.concurrent.{ExecutionContext, Future, Promise}
 import scala.concurrent.duration.{DurationInt, FiniteDuration}
 import scala.util.Success
 
-class ExternalService {
+class ExternalService(blockingEc: ExecutionContext) {
 
   private val queue: ScheduledExecutorService = {
     Executors.newScheduledThreadPool(10)
   }
 
-//  def record(action: Action): Unit = {
-//    Thread.sleep(1000)
-//  }
+  def record(action: Action): Unit =
+    Future.unit.map { _ =>
+      Thread.sleep(1000)
+    }(blockingEc)
 
   def asyncNonBlockingCall(callback: Runnable): Unit = {
     queue.schedule(callback, 1, TimeUnit.SECONDS)

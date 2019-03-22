@@ -2,35 +2,33 @@ package stateful
 
 import java.util.concurrent.{ExecutorService, Executors}
 
+import scala.concurrent.{ExecutionContext, ExecutionContextExecutorService, Future}
+
 class BankAccount(externalService: ExternalService) {
 
   private var _balance = 0
   private var _actions = List.empty[Action]
 
-  private val queue: ExecutorService = Executors.newSingleThreadExecutor()
+  implicit val ec: ExecutionContext = {
+    val queue: ExecutorService = Executors.newSingleThreadExecutor()
+    ExecutionContext.fromExecutorService(queue)
+  }
 
-  def deposit(amount: Int): Unit = {
-    externalService.asyncNonBlockingCall { () =>
-      val callback: Runnable = { () =>
-        _balance += amount
-        _actions ::= Deposit(amount)
-      }
-      queue.submit(callback)
+  def deposit(amount: Int): Future[Unit] = Future.unit.flatMap { _ =>
+    externalService.asyncNonBlockingCall2().map { _ =>
+      _balance += amount
+      _actions ::= Deposit(amount)
     }
   }
 
-  def withdraw(amount: Int): Unit = {
-    externalService.asyncNonBlockingCall { () =>
-      val callback: Runnable = { () =>
-        _balance -= amount
-        _actions ::= Withdrawal(amount)
-      }
-      queue.submit(callback)
+  def withdraw(amount: Int): Future[Unit] = Future.unit.flatMap { _ =>
+    externalService.asyncNonBlockingCall2().map { _ =>
+      _balance -= amount
+      _actions ::= Withdrawal(amount)
     }
   }
 
-  def onBalance(callback: Int => Unit): Unit = {
-    val runnable: Runnable = () => callback(_balance)
-    queue.submit(runnable)
+  def balance: Future[Int] = Future.unit.map { _ =>
+    _balance
   }
 }
