@@ -1,33 +1,36 @@
 package stateful
 
-import java.util.concurrent.atomic.AtomicReference
-
-case class AccountData(balance: Int, actions: List[Action])
+import java.util.concurrent.{ExecutorService, Executors}
 
 class BankAccount(externalService: ExternalService) {
 
-  private val ref: AtomicReference[AccountData] = {
-    new AtomicReference(AccountData(0, Nil))
-  }
+  private var _balance = 0
+  private var _actions = List.empty[Action]
+
+  private val queue: ExecutorService = Executors.newSingleThreadExecutor()
 
   def deposit(amount: Int): Unit = {
     externalService.record2 { () =>
-      ref.updateAndGet { x =>
-        AccountData(x.balance + amount, Deposit(amount) :: x.actions)
+      val callback: Runnable = { () =>
+        _balance += amount
+        _actions ::= Deposit(amount)
       }
+      queue.submit(callback)
     }
-
   }
 
   def withdraw(amount: Int): Unit = {
     externalService.record2 { () =>
-      ref.updateAndGet { x =>
-        AccountData(x.balance - amount, Withdrawal(amount) :: x.actions)
+      val callback: Runnable = { () =>
+        _balance -= amount
+        _actions ::= Withdrawal(amount)
       }
+      queue.submit(callback)
     }
   }
 
-  def balance: Int = {
-    ref.get().balance
+  def onBalance(callback: Int => Unit): Unit = {
+    val runnable: Runnable = () => callback(_balance)
+    queue.submit(runnable)
   }
 }

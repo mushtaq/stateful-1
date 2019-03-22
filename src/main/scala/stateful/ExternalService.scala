@@ -16,7 +16,7 @@ class ExternalService {
   }
 
   def record3(callback: Runnable): Unit = {
-    val function: Runnable = () => { Thread.sleep(1000); callback.run() }
-    queue.schedule(function, 0, TimeUnit.SECONDS)
+    val runnable: Runnable = () => { Thread.sleep(1000); callback.run() }
+    queue.submit(runnable)
   }
 }

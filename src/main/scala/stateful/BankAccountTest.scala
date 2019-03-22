@@ -25,6 +25,8 @@ object BankAccountTest extends App {
   Thread.sleep(2000)
 
   finalFuture.onComplete { _ =>
-    println(bankAccount.balance)
+    bankAccount.onBalance { balance =>
+      println(balance)
+    }
   }
 }
