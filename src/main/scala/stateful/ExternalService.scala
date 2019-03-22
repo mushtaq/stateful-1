@@ -19,4 +19,11 @@ class ExternalService {
     val runnable: Runnable = () => { Thread.sleep(1000); callback.run() }
     queue.submit(runnable)
   }
+
+  val m = Map(1 -> 100, 2 -> 200)
+
+  def onProductPrice(productId: Int, f: Int => Unit): Unit = {
+    val runnable: Runnable = () => f(m(productId))
+    queue.schedule(runnable, 1, TimeUnit.SECONDS)
+  }
 }
