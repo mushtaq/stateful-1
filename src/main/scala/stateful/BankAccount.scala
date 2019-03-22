@@ -1,24 +1,33 @@
 package stateful
 
-class BankAccount {
-  private var _balance              = 0
-  private var actions: List[Action] = Nil
+import java.util.concurrent.atomic.AtomicReference
+
+case class AccountData(balance: Int, actions: List[Action])
+
+class BankAccount(externalService: ExternalService) {
+
+  private val ref: AtomicReference[AccountData] = {
+    new AtomicReference(AccountData(0, Nil))
+  }
 
   def deposit(amount: Int): Unit = {
-    _balance += amount
-    actions ::= Deposit(amount)
+    externalService.record2 { () =>
+      ref.updateAndGet { x =>
+        AccountData(x.balance + amount, Deposit(amount) :: x.actions)
+      }
+    }
+
   }
 
   def withdraw(amount: Int): Unit = {
-    _balance -= amount
-    actions = new Withdrawal(amount) :: actions
+    externalService.record2 { () =>
+      ref.updateAndGet { x =>
+        AccountData(x.balance - amount, Withdrawal(amount) :: x.actions)
+      }
+    }
   }
 
-  def balance: Int = synchronized {
-    _balance
-  }
-
-  def get: (Int, List[Action]) = {
-    (_balance, actions)
+  def balance: Int = {
+    ref.get().balance
   }
 }
