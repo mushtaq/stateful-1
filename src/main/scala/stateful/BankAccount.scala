@@ -10,7 +10,7 @@ class BankAccount(externalService: ExternalService) {
   private val queue: ExecutorService = Executors.newSingleThreadExecutor()
 
   def deposit(amount: Int): Unit = {
-    externalService.record2 { () =>
+    externalService.asyncNonBlockingCall { () =>
       val callback: Runnable = { () =>
         _balance += amount
         _actions ::= Deposit(amount)
@@ -20,7 +20,7 @@ class BankAccount(externalService: ExternalService) {
   }
 
   def withdraw(amount: Int): Unit = {
-    externalService.record2 { () =>
+    externalService.asyncNonBlockingCall { () =>
       val callback: Runnable = { () =>
         _balance -= amount
         _actions ::= Withdrawal(amount)

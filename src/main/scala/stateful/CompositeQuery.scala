@@ -1,30 +1,25 @@
 package stateful
-import java.util.concurrent.{ExecutorService, Executors}
 
-class CompositeQuery(externalService: ExternalService) {
-  private val queue: ExecutorService = Executors.newSingleThreadExecutor()
+import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
 
-  def totalPrice(f: Int => Unit): Unit = {
-    var prices = List.empty[Int]
+class CompositeQuery(pricingService: PricingService) {
 
-    def dd(): Unit = if (prices.length == 2) {
-      f(prices.sum)
+  def getTotalPrice: Future[Int] = {
+    pricingService.getProductPrice(1).flatMap { p1 =>
+      pricingService.getProductPrice(2).map { p2 =>
+        p1 + p2
+      }
     }
+  }
 
-    externalService.onProductPrice(1, { p1 =>
-      val runnable: Runnable = { () =>
-        prices ::= p1
-        dd()
+  def getTotalPrice2: Future[Int] = {
+    val f1: Future[Int] = pricingService.getProductPrice(1)
+    val f2: Future[Int] = pricingService.getProductPrice(2)
+    f1.flatMap { p1: Int =>
+      f2.map { p2: Int =>
+        p1 + p2
       }
-      queue.submit(runnable)
-    })
-
-    externalService.onProductPrice(2, { p2 =>
-      val runnable: Runnable = { () =>
-        prices ::= p2
-        dd()
-      }
-      queue.submit(runnable)
-    })
+    }
   }
 }
