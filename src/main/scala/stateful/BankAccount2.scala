@@ -5,7 +5,7 @@ import java.util.concurrent.Executors
 import akka.Done
 import akka.actor.{ActorSystem, Scheduler}
 import akka.actor.typed.{ActorRef, Behavior, SupervisorStrategy}
-import akka.actor.typed.scaladsl.Behaviors
+import akka.actor.typed.scaladsl.{Behaviors, StashBuffer}
 import akka.actor.typed.scaladsl.adapter.UntypedActorSystemOps
 import akka.actor.typed.scaladsl.AskPattern._
 import akka.util.Timeout
@@ -25,10 +25,12 @@ object BankAccount2 {
   private case class SelfWithdrawal2(amount: Int, replyTo: ActorRef[Done]) extends Action2
   case class GetBalance2(replyTo: ActorRef[Int])                           extends Action2
 
-  def dd(externalService: ExternalService): Behavior[Action2] = Behaviors.setup[Action2] { ctx =>
+  def setup(externalService: ExternalService): Behavior[Action2] = Behaviors.setup[Action2] { ctx =>
     import ctx.executionContext
 
-    def behaviour(balance: Int): Behavior[Action2] = Behaviors.receiveMessage[Action2] {
+    val stashBuffer: StashBuffer[Action2] = StashBuffer[Action2](1000)
+
+    def main(balance: Int): Behavior[Action2] = Behaviors.receiveMessagePartial[Action2] {
       case Deposit2(amount, replyTo) =>
         val total = try {
           val dd = balance + amount
@@ -40,21 +42,32 @@ object BankAccount2 {
             replyTo ! Failure(ex)
             balance
         }
-        behaviour(total)
+        main(total)
       case Withdrawal2(amount, replyTo) =>
         externalService.asyncNonBlockingCall2().foreach { _ =>
+          println("I am back")
           ctx.self ! SelfWithdrawal2(amount, replyTo)
         }
-        Behaviors.same
-      case SelfWithdrawal2(amount, replyTo) =>
-        replyTo ! Done
-        behaviour(balance - amount)
+        waitingForWithdrawal(balance)
       case GetBalance2(replyTo) =>
         replyTo ! balance
         Behaviors.same
     }
 
-    behaviour(0)
+    def waitingForWithdrawal(balance: Int): Behavior[Action2] =
+      Behaviors.receiveMessage {
+        case SelfWithdrawal2(amount, replyTo) =>
+          replyTo ! Done
+          stashBuffer.unstashAll(ctx, main(balance - amount))
+        case GetBalance2(replyTo) =>
+          replyTo ! balance
+          Behaviors.same
+        case action =>
+          stashBuffer.stash(action)
+          Behaviors.same
+      }
+
+    main(0)
   }
 }
 
@@ -88,7 +101,7 @@ object Main extends App {
   }
 
   private val externalService     = new ExternalService(blockingEC)
-  val actorRef: ActorRef[Action2] = actorSystem.spawnAnonymous(BankAccount2.dd(externalService))
+  val actorRef: ActorRef[Action2] = actorSystem.spawnAnonymous(BankAccount2.setup(externalService))
 
   val bankAccountProxy = new BankAccountProxy(actorRef)
   println(bankAccountProxy.deposit(100).get)
