@@ -10,10 +10,7 @@ class BankAccount(externalService: ExternalService) {
   private var _balance = 0
   private var _actions = List.empty[Action]
 
-  implicit val ec: ExecutionContext = {
-    val queue: ExecutorService = Executors.newSingleThreadExecutor()
-    ExecutionContext.fromExecutorService(queue)
-  }
+  implicit val ec: ExecutionContext = ExecutionContextFactory.executorServiceBased()
 
   def deposit(amount: Int): Future[Unit] = async {
     val _ = await(externalService.asyncNonBlockingCall2())
