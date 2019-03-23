@@ -11,26 +11,25 @@ import akka.util.Timeout
 import scala.concurrent.Future
 import scala.concurrent.duration.DurationDouble
 import BankAccount2._
-import stateful.Main.actorSystem
 
 object BankAccount2 {
 
   sealed trait Action2
-  case class Deposit(amount: Int, replyTo: ActorRef[Done])    extends Action2
-  case class Withdrawal(amount: Int, replyTo: ActorRef[Done]) extends Action2
-  case class GetBalance(replyTo: ActorRef[Int])               extends Action2
+  case class Deposit2(amount: Int, replyTo: ActorRef[Done])    extends Action2
+  case class Withdrawal2(amount: Int, replyTo: ActorRef[Done]) extends Action2
+  case class GetBalance2(replyTo: ActorRef[Int])               extends Action2
 
   def behaviour(balance: Int): Behavior[Action2] = Behaviors.receiveMessage[Action2] { action =>
     action match {
-      case Deposit(amount, replyTo) =>
+      case Deposit2(amount, replyTo) =>
         println(s"deposting $amount")
         replyTo ! Done
         behaviour(balance + amount)
-      case Withdrawal(amount, replyTo) =>
+      case Withdrawal2(amount, replyTo) =>
         println(s"withdrawing $amount")
         replyTo ! Done
         behaviour(balance - amount)
-      case GetBalance(replyTo) =>
+      case GetBalance2(replyTo) =>
         println(s"current balance is $balance")
         replyTo ! balance
         Behaviors.same
@@ -43,35 +42,23 @@ class BankAccountProxy(actorRef: ActorRef[Action2])(implicit actorSystem: ActorS
   implicit val timeout: Timeout = Timeout(1.second)
 
   def deposit(amount: Int): Future[Done] = actorRef ? { ref: ActorRef[Done] =>
-    Deposit(amount, ref)
+    Deposit2(amount, ref)
   }
   def withdrawal(amount: Int): Future[Done] = actorRef ? { ref: ActorRef[Done] =>
-    Withdrawal(amount, ref)
+    Withdrawal2(amount, ref)
   }
   def getBalance: Future[Int] = actorRef ? { ref: ActorRef[Int] =>
-    GetBalance(ref)
+    GetBalance2(ref)
   }
 }
 
 object Main extends App {
-  val actorSystem                 = ActorSystem("test")
-  val actorRef: ActorRef[Action2] = actorSystem.spawnAnonymous(BankAccount2.behaviour(0))
-  implicit val sc                 = actorSystem.scheduler
-  implicit val timeout            = Timeout(1.second)
+  implicit val actorSystem: ActorSystem = ActorSystem("test")
+  val actorRef: ActorRef[Action2]       = actorSystem.spawnAnonymous(BankAccount2.behaviour(0))
 
-  val a: Future[Done] = actorRef ? { ref: ActorRef[Done] =>
-    Deposit(100, ref)
-  }
-
-  val b: Future[Int] = actorRef ? { ref: ActorRef[Int] =>
-    GetBalance(ref)
-  }
-
-  actorRef ? { ref: ActorRef[Done] =>
-    Withdrawal(100, ref)
-  }
-
-  actorRef ? { ref: ActorRef[Int] =>
-    GetBalance(ref)
-  }
+  val bankAccountProxy = new BankAccountProxy(actorRef)
+  bankAccountProxy.deposit(100)
+  bankAccountProxy.getBalance
+  bankAccountProxy.withdrawal(100)
+  bankAccountProxy.getBalance
 }
