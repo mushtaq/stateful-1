@@ -26,7 +26,7 @@ object ExecutionContextFactory {
 
   def streamBased(implicit mat: Materializer): ExecutionContext = {
     val (queue, stream) = {
-      Source.queue[Runnable](1024, OverflowStrategy.dropTail).preMaterialize()
+      Source.queue[Runnable](1024000, OverflowStrategy.dropTail).preMaterialize()
     }
     stream.runForeach { runnable =>
       println("running")

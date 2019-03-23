@@ -6,6 +6,7 @@ import akka.actor.ActorSystem
 
 import scala.async.Async._
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutorService, Future}
+import scala.util.control.NonFatal
 
 object BankAccountTest extends App {
 
@@ -39,5 +40,7 @@ object BankAccountTest extends App {
     await(finalFuture)
     val balance = await(bankAccount.balance)
     println(balance)
+  }.recover {
+    case NonFatal(ex) => ex.printStackTrace()
   }
 }
