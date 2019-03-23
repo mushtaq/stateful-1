@@ -1,10 +1,15 @@
 package stateful
+
 import java.util.concurrent.Executors
+
+import akka.actor.ActorSystem
 
 import scala.async.Async._
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutorService, Future}
 
 object BankAccountTest extends App {
+
+  implicit val actorSystem: ActorSystem = ActorSystem("test")
 
   private val blockingEC: ExecutionContextExecutorService = {
     ExecutionContext.fromExecutorService(Executors.newFixedThreadPool(300))

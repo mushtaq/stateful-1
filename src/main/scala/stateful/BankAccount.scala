@@ -1,16 +1,16 @@
 package stateful
 
-import java.util.concurrent.{ExecutorService, Executors}
+import akka.actor.ActorSystem
 
 import scala.async.Async._
 import scala.concurrent.{ExecutionContext, Future}
 
-class BankAccount(externalService: ExternalService) {
+class BankAccount(externalService: ExternalService)(implicit actorSystem: ActorSystem) {
 
   private var _balance = 0
   private var _actions = List.empty[Action]
 
-  implicit val ec: ExecutionContext = ExecutionContextFactory.executorServiceBased()
+  implicit val ec: ExecutionContext = ExecutionContextFactory.actorBased
 
   def deposit(amount: Int): Future[Unit] = async {
     val _ = await(externalService.asyncNonBlockingCall2())
